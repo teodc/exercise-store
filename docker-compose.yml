@@ -1,0 +1,66 @@
+version: "3"
+services:
+
+  inventory:
+    build:
+      context: backend/inventory
+      dockerfile: Dockerfile
+      args:
+        - app_port=${APP_PORT}
+    ports:
+      - "8001:${APP_PORT}"
+    volumes:
+      - /backend/inventory:/app
+    env_file: backend/inventory/.env
+    tty: true
+    depends_on:
+      - inventory-redis
+      - queue-redis
+  inventory-redis:
+    image: redis/redis-stack:latest
+    ports:
+      - "8011:6379"
+      - "8021:8001"
+
+  payment:
+    build:
+      context: backend/payment
+      dockerfile: Dockerfile
+      args:
+        - app_port=${APP_PORT}
+    ports:
+      - "8002:${APP_PORT}"
+    volumes:
+      - /backend/payment:/app
+    env_file: backend/payment/.env
+    tty: true
+    depends_on:
+      - payment-redis
+      - queue-redis
+  payment-redis:
+    image: redis/redis-stack:latest
+    ports:
+      - "8012:6379"
+      - "8022:8001"
+
+  queue:
+    image: redis/redis-stack:latest
+    ports:
+      - "8013:6379"
+      - "8023:8001"
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: frontend/Dockerfile
+      args:
+        - app_port=${REACT_APP_PORT}
+    ports:
+      - "8003:${REACT_APP_PORT}"
+    volumes:
+      - /frontend:/app
+    env_file: frontend/.env
+    tty: true
+    depends_on:
+      - inventory
+      - payment
